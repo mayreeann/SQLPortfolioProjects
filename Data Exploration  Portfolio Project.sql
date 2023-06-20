@@ -1,3 +1,12 @@
+/*
+Covid 19 Data Exploration 
+
+Skills used: Joins, CTE's, Temp Tables, Windows Functions, Aggregate Functions, Creating Views, Converting Data Types
+
+*/
+
+
+
 SELECT *
 FROM PortfolioProject..CovidDeaths
 WHERE continent IS NOT NULL
@@ -7,33 +16,36 @@ ORDER BY 3,4
 --FROM PortfolioProject..CovidVaccinations
 --ORDER BY 3,4
 
---Portion of data to be explored
+-- Portion of data to be explored
 
 SELECT continent, location, date, total_cases, new_cases, total_deaths, population
 FROM CovidDeaths
 WHERE continent IS NOT NULL
 ORDER BY 1, 2
 
---Looking at Total Cases Vs Total Deaths
---The query below shows the likelihood of dying when infected with the covid virus
+
+-- Looking at Total Cases Vs Total Deaths
+-- The query below shows the likelihood of dying when infected with the covid virus
 
 SELECT continent, location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS DeathPercentage
 FROM CovidDeaths
 WHERE continent IS NOT NULL
 ORDER BY 1, 2
 
+-- Looking at the likelihood of dying in Nigeria when infected
+
 SELECT continent, location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS DeathPercentage
 FROM CovidDeaths
-WHERE location like '%Nigeria%'
+WHERE location like '%nigeria%'
 AND continent IS NOT NULL
 ORDER BY 1, 2
 
---Nigeria generally had fewer cases and the risk of deaths was generally between 1-3.6%
+-- The risk of deaths from covid in Nigeria was generally between 1-3.6%
 
 
 
---Taking a look at Total Cases Vs Population
---Shows the percentage of the population that contacted the covid virus
+-- Taking a look at Total Cases Vs Population
+-- Shows the percentage of the population that contacted the covid virus
 
 SELECT continent, location, date, population, total_cases, (total_cases/population)*100 AS PopCasePercentage
 FROM CovidDeaths
@@ -42,7 +54,8 @@ AND continent IS NOT NULL
 ORDER BY 1, 2
 
 
---Looking at Countries with higher infection rate compared to the population
+
+-- Looking at Countries with highest infection rate compared to the population
 
 SELECT continent, location, population, MAX(total_cases) AS HighestInfectionCount, 
 MAX((total_cases/population))*100 AS PercentPopulationInfected
@@ -51,7 +64,9 @@ WHERE continent IS NOT NULL
 GROUP BY continent, location, population
 ORDER BY PercentPopulationInfected DESC
 
---Countries with the higest death count per population
+
+
+-- Countries with the higest death count per population
 
 SELECT continent, location,MAX(cast(total_deaths AS int)) AS HighestDeathCount 
 FROM CovidDeaths
@@ -68,26 +83,32 @@ GROUP BY continent, location, population
 ORDER BY PopulationDeathPercentage DESC
 
 
---BREAKING THE DATA DOWN BY CONTINENT
+-- BREAKING THE DATA DOWN BY CONTINENT
 
---SELECT location,MAX(cast(total_deaths AS int)) AS HighestDeathCount 
---FROM CovidDeaths
---WHERE continent IS NULL
---GROUP BY location
---ORDER BY HighestDeathCount DESC
 
---Showing continents with the highest death count per population
+-- Showing continents with the highest death count per population
 
-SELECT continent,MAX(cast(total_deaths AS int)) AS HighestDeathCount 
+SELECT continent,MAX(cast(total_deaths AS int)) AS TotalDeathCount 
 FROM CovidDeaths
 WHERE continent IS NOT NULL
 GROUP BY continent
-ORDER BY HighestDeathCount DESC
+ORDER BY TotalDeathCount DESC
 
 
---LOOKING AT THE GLOBAL NUMBERS
+-- Creating view to store the data for visualization
 
---Cases recorded and number of deaths per day
+CREATE VIEW TotalDeathCount AS
+SELECT continent,MAX(cast(total_deaths AS int)) AS TotalDeathCount 
+FROM CovidDeaths
+WHERE continent IS NOT NULL
+GROUP BY continent
+--ORDER BY HighestDeathCount DESC
+
+
+
+-- LOOKING AT THE GLOBAL NUMBERS
+
+-- Cases recorded and number of deaths per day
 
 SELECT date, SUM(new_cases) AS TotalCases,
 SUM(CAST(new_deaths AS INT)) AS TotalDeaths,
@@ -97,7 +118,7 @@ WHERE continent IS NOT NULL
 GROUP BY date
 ORDER BY 1, 2
 
---Total cases recorded and number of deaths during the pandemic world wide
+-- Total cases recorded and number of deaths during the pandemic world wide
 
 SELECT SUM(new_cases) AS TotalCases,
 SUM(CAST(new_deaths AS INT)) AS TotalDeaths,
@@ -106,7 +127,9 @@ FROM CovidDeaths
 WHERE continent IS NOT NULL
 
 
---Looking at Total Population Vs Vaccinations
+-- Looking at Total Population Vs Vaccinations
+-- Shows Count of Population that has recieved at least one Covid Vaccine
+
 SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
 SUM(CONVERT(INT,vac.new_vaccinations)) OVER (PARTITION BY dea.location 
 ORDER BY dea.location,dea.date ) AS RollingPeopleVaccinated
@@ -118,8 +141,8 @@ WHERE dea.continent IS NOT NULL
 ORDER BY 2,3
 
 
---Looking at percentage of population vaccinated
---Using CTE
+
+--Using CTE to perform calculation on PARTITION BY of the percentage population vaccinated
 
 WITH PopVsVac(continent, location, date, population, new_vaccinations, RollingPeopleVaccinated)
 AS 
@@ -137,7 +160,7 @@ SELECT *, (RollingPeopleVaccinated/population)*100 AS PercentagePeopleVaccinated
 FROM PopVsVac
 
 
---Using TEMP TABLE
+--Using TEMP TABLE to perform calculation on the previous query
 
 DROP TABLE IF EXISTS #PercentagePopulationVaccinated
 CREATE TABLE #PercentagePopulationVaccinated
